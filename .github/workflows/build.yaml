@@ -2,48 +2,53 @@ name: Build and Package
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
 
 jobs:
-  build:
+  build-and-package:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up CMake
-        uses: jwlawson/actions-setup-cmake@v1
-        with:
-          cmake-version: '3.21.2'
+        uses: jwlawson/actions-setup-cmake@v2
 
-      - name: Install dependencies
-        run: sudo apt-get install -y debhelper
-
-      - name: Create build directory
-        run: mkdir build && cd build
-
-      - name: Run CMake
-        run: cmake .. -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build the project
-        run: cmake --build .
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake fakeroot dpkg-dev
 
       - name: Get version
         id: get_version
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Create Debian package
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Create Debian package structure
         run: |
-          cd debian
-          dpkg-buildpackage -us -uc -b
+          mkdir -p pkg/usr/local/bin
+          cp build/mcp_server pkg/usr/local/bin/
+          mkdir -p pkg/DEBIAN
+          cat <<EOF > pkg/DEBIAN/control
+          Package: mcp-server
+          Version: ${{ env.VERSION }}
+          Section: base
+          Priority: optional
+          Architecture: amd64
+          Maintainer: Your Name <you@example.com>
+          Description: MCP Server
+          EOF
+
+      - name: Build Debian package
+        run: dpkg-deb --build pkg mcp-server_${{ env.VERSION }}_amd64.deb
 
       - name: Upload Debian package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: debian-package
-          path: ../*.deb
+          name: mcp-server-deb
+          path: mcp-server_${{ env.VERSION }}_amd64.deb
