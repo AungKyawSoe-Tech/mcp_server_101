@@ -1,0 +1,5 @@
+{
+  "tcp_port": 5000,
+  "http_port": 8080,
+  "coap_port": 5683
+}
