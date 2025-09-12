@@ -1,4 +1,24 @@
-# MCP Server Template
+# What is MCP (Model Context Protocol)
+
+"MCP stands for Model Context Protocol, an open standard introduced by Anthropic in November 2024.
+
+Its purpose is to improve how AI models interact with external systems, not by modifying the models themselves, but by providing them structured, secure access to real-world data, tools, and services.
+
+An MCP server is a standalone service that exposes specific capabilities such as reading files, querying databases, invoking APIs, or offering reusable prompts, in a standardized format that AI models can understand.
+
+Rather than building custom integrations for every individual data source or tool, developers can implement MCP servers that conform to a shared protocol.
+
+This eliminates the need for repetitive boilerplate and reduces complexity in AI applications." [Reference: https://itsfoss.com/mcp-servers/]
+
+See USB-C example of how MCP servers work from Norash Sarkal's blog
+
+[Reference: https://norahsakal.com/blog/mcp-vs-api-model-context-protocol-explained/]
+
+See image below from Norah Sakal's Blog:
+
+<img src="USB-C-Example-MCP-Servers.png" alt="USB-C-Example-MCP-Servers image">
+
+## MCP Server Template
 
 A minimal C++ MCP (**Model Context Protocol**) server supporting:
 - Raw TCP socket (custom protocol)
