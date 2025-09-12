@@ -1,7 +1,0 @@
-Package: mcp-server
-Version: 1.0
-Section: net
-Priority: optional
-Architecture: amd64
-Maintainer: Your Name <you@example.com>
-Description: Minimal MCP server supporting TCP, HTTP, and CoAP.
