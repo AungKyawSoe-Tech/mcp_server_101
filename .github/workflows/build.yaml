@@ -23,6 +23,13 @@ jobs:
         id: get_version
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
+      - name: Check version
+        run: |
+          if [ -z "${{ env.VERSION }}" ]; then
+            echo "VERSION file is missing or empty!"
+            exit 1
+          fi
+
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
