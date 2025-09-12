@@ -17,8 +17,10 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
 
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake fakeroot dpkg-dev
-
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget build-essential cmake fakeroot dpkg-dev libcurl4-openssl-dev
+          wget https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h -O src/httplib.h
       - name: Get version
         id: get_version
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
@@ -48,7 +50,7 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Your Name <you@example.com>
-          Description: MCP Server
+          Description: MCP Server (Model Context Protocol) with LLM relay
           EOF
 
       - name: Build Debian package
