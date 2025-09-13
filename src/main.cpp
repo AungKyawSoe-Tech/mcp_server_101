@@ -5,6 +5,8 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <fstream>
+#include <string>
 
 int main() {
     ServerConfig config;
@@ -13,7 +15,13 @@ int main() {
         return 1;
     }
     start_tcp_server(config.tcp_port);
-    start_http_server(config.http_port);
+
+    std::string openai_api_key;
+    std::ifstream keyfile("openai_api_key.txt");
+    if (keyfile) std::getline(keyfile, openai_api_key);
+
+    // Pass the key to your HTTP server
+    start_http_server(8080, openai_api_key);
     start_coap_server(config.coap_port);
 
     std::cout << "MCP server running. Press Ctrl+C to exit." << std::endl;

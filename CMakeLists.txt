@@ -19,3 +19,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 target_link_libraries(mcp_server PRIVATE nlohmann_json::nlohmann_json)
+
+find_package(CURL REQUIRED)
+target_link_libraries(mcp_server PRIVATE CURL::libcurl nlohmann_json::nlohmann_json)

@@ -7,28 +7,68 @@
 #include <cstring>
 #include <thread>
 #include <chrono>
-void start_http_server(int port) {
-    std::thread([port]() {
-        int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-        sockaddr_in addr{};
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(port);
+#include "httplib.h"
+#include <nlohmann/json.hpp>
+#include <curl/curl.h>
+#include <string>
+#include <fstream>
 
-        bind(server_fd, (sockaddr*)&addr, sizeof(addr));
-        listen(server_fd, 5);
-        std::cout << "[HTTP] Listening on port " << port << std::endl;
-        while (true) {
-            int client_fd = accept(server_fd, nullptr, nullptr);
-            if (client_fd >= 0) {
-                char buf[1024] = {0};
-                read(client_fd, buf, sizeof(buf));
-                // Minimal HTTP response
-                const char* resp = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello from HTTP server!";
-                write(client_fd, resp, strlen(resp));
-                close(client_fd);
-            }
+// Helper for libcurl response
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+// Function to call OpenAI API
+std::string call_llm_api(const std::string& prompt, const std::string& api_key) {
+    CURL* curl = curl_easy_init();
+    std::string readBuffer;
+    if(curl) {
+        nlohmann::json req = {
+            {"model", "gpt-3.5-turbo"},
+            {"messages", {{{"role", "user"}, {"content", prompt}}}}
+        };
+        struct curl_slist* headers = nullptr;
+        std::string auth = "Authorization: Bearer " + api_key;
+        headers = curl_slist_append(headers, auth.c_str());
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+
+        curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/chat/completions");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req.dump().c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+        curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(headers);
+    }
+    // Parse response
+    try {
+        auto resp = nlohmann::json::parse(readBuffer);
+        return resp["choices"][0]["message"]["content"];
+    } catch (...) {
+        return "LLM error or invalid response";
+    }
+}
+
+void start_http_server(int port, const std::string& openai_api_key) {
+    httplib::Server svr;
+
+    svr.Post("/llm", [&](const httplib::Request& req, httplib::Response& res) {
+        try {
+            auto j = nlohmann::json::parse(req.body);
+            std::string prompt = j["prompt"];
+            std::string llm_response = call_llm_api(prompt, openai_api_key);
+            nlohmann::json resp = {{"response", llm_response}};
+            res.set_content(resp.dump(), "application/json");
+        } catch (...) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Invalid request\"}", "application/json");
         }
-        close(server_fd);
-    }).detach();
+    });
+
+    // ...existing endpoints...
+
+    svr.listen("0.0.0.0", port);
 }
